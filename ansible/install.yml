@@ -1,0 +1,86 @@
+---
+- name: PlaQ's laptop install
+  hosts: localhost
+  connection: local
+  become_method: sudo
+
+  pre_tasks:
+    - name: Update repositories
+      ansible.builtin.apt:
+        update_cache: true
+      become_user: root
+      changed_when: false
+  vars:
+    user: "{{ ansible_user_id }}"
+
+  tasks:
+    - name: Update apt
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+
+    - name: Install
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - kitty
+        - awesome
+        - awesome-extra
+        - autorandr
+        - fzf
+        - git
+        - i3lock
+        - mc
+        - nitrogen
+        - openconnect
+        - openvpn
+        - pavucontrol
+        - qemu
+        - redshift
+        - remmina
+        - rofi
+        - tmux
+        - timewarrior
+        - watson
+        - vim
+        - vlc
+        - weechat
+        - zsh
+        - zsh-common
+
+    - name: Remove useless packages from the cache
+      ansible.builtin.apt:
+        autoclean: true
+
+    - name: Remove dependencies that are no longer required
+      ansible.builtin.apt:
+        autoremove: true
+
+    - name: Check if cargo is installed
+      ansible.builtin.shell: command -v cargo
+      register: cargo_exists
+      changed_when: false
+      tags:
+        - rust
+
+    - name: Download Installer
+      when: cargo_exists is failed
+      ansible.builtin.get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/sh.rustup.rs
+        mode: '0755'
+        force: 'yes'
+      tags:
+        - rust
+
+    - name: Install rust/cargo
+      when: cargo_exists is failed
+      ansible.builtin.shell: /tmp/sh.rustup.rs -y
+      tags:
+        - rust
+
+    - name: Get repo
+      ansible.builtin.git:
+        clone: true
+        update: true
